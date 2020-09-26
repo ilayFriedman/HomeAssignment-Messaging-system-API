@@ -36,12 +36,33 @@ app.post('/register', async function (req, res) {
     res.end();
     return;
   }
-  try {
-      const text = 'INSERT INTO Users(username, password) VALUES($1, $2) RETURNING *'
-      const values = [req.body.username,req.body.password]
+    // check unique username
+    try {
+      const text = 'SELECT username FROM Users WHERE username = $1'
+      const values = [req.body.username]
       client.query(text, values, function (err, result) {
           if (result) {
-              res.status(200).send("User successfully registered!")
+            if(result.rows < 1){
+            try{ 
+              // username free for use
+              const text = 'INSERT INTO Users(username, password) VALUES($1, $2) RETURNING *'
+              const values = [req.body.username,req.body.password]
+              client.query(text, values, function (err, result) {
+              if (result) {
+                res.status(200).send("User successfully registered!") 
+                } else {
+                  console.log(err)
+                  res.status(500).send(`Server error occured.`)
+                  }
+              })
+            } catch (e) {
+            console.log(e);
+            res.status(500).send(`Server error occured.`)
+            }
+            }
+            else{
+              res.status(401).send("User name is already taken. Registration failed")
+            }
           } else {
               console.log(err)
               res.status(500).send(`Server error occured.`)
